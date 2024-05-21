@@ -1,0 +1,53 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tableaux"
+description = "Load tables extracted from journal articles"
+authors = [
+  {name = "Remington Mallett", email = "mallett.remy@gmail.com"},
+]
+maintainers = [
+  {name = "Remington Mallett", email = "mallett.remy@gmail.com"},
+]
+requires-python = ">=3.7"
+dependencies = [
+    "pandas>=2.0.0",
+    "pooch>=1.8.0",
+]
+readme = "README.md"
+dynamic = ["version"]
+keywords = ["data", "meta-analysis"]
+classifiers = [
+    "Development Status :: 1 - Planning",
+    "License :: OSI Approved :: BSD License",
+    "Operating System :: OS Independent",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
+
+[project.urls]
+Homepage = "https://github.com/remrama/tableaux"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+namespaces = false
+where = ["src"]
+
+[tool.setuptools.package-data]
+tableaux = ["tableaux/data/registry.txt"]
+
+[tool.setuptools.dynamic]
+version = {attr = "tableaux.__version__"}

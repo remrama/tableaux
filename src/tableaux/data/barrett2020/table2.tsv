@@ -1,0 +1,10 @@
+LIWC category and content examples	Pandemic male M	Pandemic male SD	Normative male M	Normative male SD	t	p
+Positive emotions: love, nice, sweet	0.96	3.81	1.48	1.46	3.47	.0009**
+Negative emotions: hurt, ugly, nasty	1.91	2.95	1.50	1.52	3.28	.0011**
+Anxiety: worried, fearful, nervous	0.48	1.06	0.33	0.64	3.17	.0015**
+Anger: hate, furious, annoyed	0.45	1.27	0.47	0.93	.33	.7506
+Sadness: crying, grief, sad	0.34	1.37	0.27	0.53	1.32	.1953
+Biological processes: eat, blood, pain	1.99	3.21	1.67	1.92	2.24	.0252*
+Body: cheek, hands, spit	0.73	1.44	0.78	1.21	.67	.5032
+Health: sick, cough, clinic	0.76	1.69	0.38	0.76	5.52	<.0001***
+Death: bury, coffin, kill	0.74	5.33	0.23	0.67	2.67	.0077**
