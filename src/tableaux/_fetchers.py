@@ -1,8 +1,8 @@
 """
-Loaders
+Fetchers
 
-Raw table loaders.
-Loaders load by raw tables, with minimal/sensible processing.
+Fetch/load raw tables.
+Minimal processing is applied.
 """
 from importlib.resources import files
 from pathlib import Path
@@ -10,69 +10,71 @@ from pathlib import Path
 import pandas as pd
 import pooch
 
-
 from ._version import __version__
 
 
 
-
-registry_path = files("tableaux.data").joinpath("registry.txt")
+################################################################################
+# Initialize pooch repository for grabbing/fetching files easily
+################################################################################
 
 PUP = pooch.create(
     path=pooch.os_cache("tableaux"),
-    base_url="https://github.com/remrama/tableaux/raw/{version}/src/tableau/data/",
+    base_url="https://github.com/remrama/tableaux/raw/{version}/src/tableaux/data/",
     version=__version__,
     version_dev="main",
     registry=None,
 )
 
-PUP.load_registry(registry_path)
+PUP.load_registry(files("tableaux.data").joinpath("registry.txt"))
 
 
-#########################################
+################################################################################
+# Utility functions
+################################################################################
+
 def _list_available_tables(dataset):
-    """List available tables for a given dataset.
-
-    dataset: str
-        Name of dataset
-    """
+    """List available tables for a given dataset."""
     assert isinstance(dataset, str), "`dataset` must be a string"
-    glob = sorted(p.stem for p in data_dir.joinpath(dataset).glob("*.tsv"))
-    return sorted(glob)
+    available_datasets = [f.split("/")[1].split(".")[0] for f in PUP.registry_files if f.startswith(dataset)]
+    return sorted(available_datasets)
 
-def _compile_table_filepath(dataset, table):
-    """
-    Compile a filepath for a given dataset and table combination.
-    dataset: str
-        Name of dataset
-    table: str
-        Name of table
-    """
+
+def _compile_table_filename(dataset, table):
+    """Compile a filepath for a given dataset and table combination."""
     assert isinstance(dataset, str), "`dataset` must be a string"
     assert isinstance(table, str), "`table` must be a string"
     available_tables = _list_available_tables(dataset)
     assert table in available_tables, f"{table} must be one of {available_tables}"
-    return data_dir.joinpath(dataset).joinpath(table).with_suffix(".tsv")
+    filename = f"{dataset}/{table}.tsv"
+    return filename
+
+################################################################################
 
 
-
-def load_barrett2020(table):
+def fetch_barrett2020(table, *args, **kwargs):
     """
-    Load table from Barrett 2020, Dreaming.
-    Dreams About COVID-19 Versus Normative Dreams: Trends by Gender
-    doi: 10.1037/drm0000149
+    Barrett, 2020, _Dreaming_
+    Dreams about COVID-19 versus normative dreams: Trends by gender
+    doi: `10.1037/drm0000149 <https://doi.org/10.1037/drm0000149>`__
 
-    table: str
-        Name of desired table.
-        Available tables are Table1 (table1) and Table2 (table2)
+    Parameters
+    ----------
+    table : str
+        Name of desired table. Available tables are ``table1`` and ``table2``.
 
-    Available tables.
+    Returns
+    -------
+    df : `py:class:`pandas.DataFrame`
+
+    Notes
+    -----
     Table 1: Female Pandemic Survey Dreams Versus Hall and van de Castle Female Normative Dreams
     Table 2: Male Pandemic Survey Dreams Versus Hall and van de Castle Male Normative Dream[s]
-    Manual: Manually extracted features.
     """
-    fp = _compile_table_filepath("barrett2020", table)
-    df = pd.read_table(fp)
+    fname = _compile_table_filename("barrett2020", table)
+    fpath = PUP.fetch(fname, *args, **kwargs)
+    df = pd.read_table(fpath)
     if table != "manual":
         # Modify values
         df["p"] = df["p"].str.rstrip("*")
@@ -113,15 +115,16 @@ def load_barrett2020(table):
     return df
 
 
-def load_cariola2014(table):
+def fetch_cariola2014(table, *args, **kwargs):
     """
     Table 1: Univariate Results of Body Boundary Imagery and LIWC Linguistic Variables of Low and High Barrier Personalities in Narratives of Everyday Memories
     Table 2: Univariate Results of Body Boundary Imagery and LIWC Linguistic Variables of Low and High Barrier Personalities in Narratives of Dream Memories
     """
-    fp = _compile_table_filepath("cariola2014", table)
+    fname = _compile_table_filename("cariola2014", table)
+    fpath = PUP.fetch(fname, *args, **kwargs)
     if table != "manual":
         df = (
-            pd.read_table(fp, index_col=0, skiprows=1, header=[0, 1])
+            pd.read_table(fpath, index_col=0, skiprows=1, header=[0, 1])
             .rename(columns={"Unnamed: 2_level_0": "Low", "Unnamed: 4_level_0": "High"})
             .rename_axis(index="Category", columns=["BarrierPersonality", "Parameter"])
             .astype(float)
@@ -131,11 +134,12 @@ def load_cariola2014(table):
     return df
 
 
-def load_bulkeley2018(table):
-    fp = _compile_table_filepath("bulkeley2018", table)
+def fetch_bulkeley2018(table, *args, **kwargs):
+    fname = _compile_table_filename("bulkeley2018", table)
+    fpath = PUP.fetch(fname, *args, **kwargs)
     if table != "manual":
         df = (
-            pd.read_table(fp)
+            pd.read_table(fpath)
             .astype({
                 "Category name": "str",
                 "SDDb baselines (male and female)": "float",
@@ -151,12 +155,12 @@ def load_bulkeley2018(table):
     return df
 
 
-def load_cariola2010(table):
-    fp = _compile_table_filepath("cariola2010", table)
+def fetch_cariola2010(table, *args, **kwargs):
+    fname = _compile_table_filename("cariola2010", table)
+    fpath = PUP.fetch(fname, *args, **kwargs)
     if table != "manual":
-        df.index = pd.CategoricalIndex(df.index.astype(str), ordered=False)
         df = (
-            pd.read_table(fp, index)
+            pd.read_table(fpath, index)
             .rename(columns={"Linguistic processes": "Category"})
             .astype({
                 "Category": "str",
@@ -188,15 +192,17 @@ def load_cariola2010(table):
                 }
             )
         )
+        # df.index = pd.CategoricalIndex(df.index.astype(str), ordered=False)
         df = df.set_index("Category").sort_index(axis="index").sort_index(axis="columns")
     return df
 
 
-def load_hawkins2017(table):
-    fp = _compile_table_filepath("hawkins2017", table)
+def fetch_hawkins2017(table, *args, **kwargs):
+    fname = _compile_table_filename("hawkins2017", table)
+    fpath = PUP.fetch(fname, *args, **kwargs)
     if table != "manual":
         df = (
-            pd.read_table(fp, index_col=0, header=[0, 1])
+            pd.read_table(fpath, index_col=0, header=[0, 1])
             .rename(columns=
                 {
                     "Unnamed: 2_level_0": "2007 norms",
@@ -221,10 +227,11 @@ def load_hawkins2017(table):
     return df
 
 
-def load_mariani2023(table):
-    fp = _compile_table_filepath("mariani2023", table)
+def fetch_mariani2023(table, *args, **kwargs):
+    fname = _compile_table_filename("mariani2023", table)
+    fpath = PUP.fetch(fname, *args, **kwargs)
     if table != "manual":
-        df = pd.read_table(fp, index_col=0)
+        df = pd.read_table(fpath, index_col=0)
         df = df.astype(float)
         columns = df.columns.str[8:].str.rstrip(")").str.split(" \\(")
         df.columns = pd.MultiIndex.from_tuples([tuple(c) for c in columns])
@@ -238,7 +245,9 @@ def load_mariani2023(table):
     return df
 
 
-def load_mcnamara2015(table):
+def fetch_mcnamara2015(table, *args, **kwargs):
+    fname = _compile_table_filename("mcnamara2015", table)
+    fpath = PUP.fetch(fname, *args, **kwargs)
     fp = _compile_table_filepath("mcnamara2015", table)
     if table != "manual":
         multiheader_rows = [0, 1]
@@ -256,10 +265,12 @@ def load_mcnamara2015(table):
     df = df.sort_index(axis=0).sort_index(axis=1)
     return df
 
-def load_meador2022(table):
-    fp = _compile_table_filepath("meador2022", table)
+
+def fetch_meador2022(table, *args, **kwargs):
+    fname = _compile_table_filename("meador2022", table)
+    fpath = PUP.fetch(fname, *args, **kwargs)
     if table != "manual":
-        df = pd.read_table(fp)
+        df = pd.read_table(fpath)
         df["Category"] = pd.Categorical(df["Category"].astype(str), ordered=False)
         df = df.set_index("Category")
         df = df.astype(float)
@@ -267,9 +278,11 @@ def load_meador2022(table):
         df = df.sort_index(axis=0).sort_index(axis=1)
     return df
 
-def load_mota2020(table):
-    fp = _compile_table_filepath("mota2020", table)
-    df = pd.read_table(fp, header=[0, 1], index_col=0)
+
+def fetch_mota2020(table, *args, **kwargs):
+    fname = _compile_table_filename("mota2020", table)
+    fpath = PUP.fetch(fname, *args, **kwargs)
+    df = pd.read_table(fpath, header=[0, 1], index_col=0)
     df.columns = pd.MultiIndex.from_frame(
         (
             df.columns
@@ -287,9 +300,10 @@ def load_mota2020(table):
     return df
 
 
-def load_niederhoffer2017(table):
-    fp = _compile_table_filepath("niederhoffer2017", table)
-    df = pd.read_table(fp, index_col=0)
+def fetch_niederhoffer2017(table, *args, **kwargs):
+    fname = _compile_table_filename("niederhoffer2017", table)
+    fpath = PUP.fetch(fname, *args, **kwargs)
+    df = pd.read_table(fpath, index_col=0)
     df = df.astype(float)
     df.columns = pd.MultiIndex.from_tuples(tuple(c) for c in df.columns.str.rstrip(")").str.split(" \\("))
     df = df.rename_axis(columns=["Sample", "Parameter"])
@@ -297,8 +311,9 @@ def load_niederhoffer2017(table):
     return df
 
 
-def load_zheng2023(table):
-    fp = _compile_table_filepath("zheng2023", table)
+def fetch_zheng2023(table, *args, **kwargs):
+    fname = _compile_table_filename("zheng2023", table)
+    fpath = PUP.fetch(fname, *args, **kwargs)
     df = pd.read_table(fp, index_col=0, dtype={"Categorical": "str", "Dream (M)": "float", "Wake (M)": "float"})
     df.columns = df.columns.str.split().str[0]
     df = df.sort_index(axis=0).sort_index(axis=1)
